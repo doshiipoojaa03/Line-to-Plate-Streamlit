@@ -1,4 +1,4 @@
-from midas_civil import MidasAPI
+from backend.midas_civil_lib import MidasAPI
 
 class Offset:
     def __init__(self,OffsetPoint='CC',CenterLocation=0,HOffset=0,HOffOpt=0,VOffset=0,VOffOpt=0,UsrOffOpt=0):

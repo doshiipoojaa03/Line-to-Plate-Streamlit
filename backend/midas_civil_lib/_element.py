@@ -8,106 +8,10 @@ from math import hypot
 import math
 
 
-def _interpolateAlignment(pointsArray,n_seg=10,deg=1,mSize=0,includePoint:bool=True) -> list:
-    ''' Returns point list and beta angle list'''
-    pointsArray = np.array(pointsArray)
-    x_p, y_p , z_p  = pointsArray[:,0] , pointsArray[:,1] , pointsArray[:,2]
-
-    if deg < 1 :
-        deg = 1
-    if deg > len(pointsArray)-1:
-        deg = len(pointsArray)-1
-
-    #-- Actual length ----
-    dxq = np.diff(x_p)
-    dyq = np.diff(y_p)
-    dzq = np.diff(z_p)
-    dlq=[0]
-
-    for i in range(len(dxq)):
-        dlq.append(hypot(dxq[i],dyq[i],dzq[i]))
-
-    tck, u = splprep([x_p, y_p, z_p], s=0, k=deg)
-
-    u_fine = np.linspace(0, 1, 500)
-    x_den, y_den, z_den = splev(u_fine, tck)
-
-    dx = np.diff(x_den)
-    dy = np.diff(y_den)
-    dz = np.diff(z_den)
-    dl=[]
-    for i in range(len(dx)):
-        dl.append(hypot(dx[i],dy[i],dz[i]))
-
-    cum_l = np.insert(np.cumsum(dl),0,0)
-    total_l = cum_l[-1]
-
-
-    if n_seg==0 or mSize!=0:
-        n_seg=int(total_l/mSize)
-
-
-    eq_len = np.linspace(0,total_l,n_seg+1)
-
-    interp_u = np.interp(eq_len,cum_l,u_fine)
-
-    if includePoint:
-        interp_u = np.sort(np.append(interp_u,u[1:-1])).tolist()
-
-        eq_u = 1/n_seg # for filtering close points
-    
-        new_u = []
-        skip=0
-        for i in range(len(interp_u)-1):
-            if skip == 1:
-                skip = 0 
-                continue
-            if interp_u[i+1]-interp_u[i] < 0.2*eq_u:
-                if interp_u[i] in u:
-                    new_u.append(interp_u[i])
-                    skip=1
-                else:
-                    new_u.append(interp_u[i+1])
-                    skip=1
-            else:
-                new_u.append(interp_u[i])
-        new_u.append(interp_u[-1])
-    else:
-        new_u = interp_u
-
-
-    interp_x, interp_y , interp_z = splev(new_u, tck)
-
-
-    align_fine_points  = [ [round(x,6), round(y,6), round(z,6)] for x, y, z in zip(interp_x, interp_y , interp_z) ]
-
-    return align_fine_points
-
 
 def _nodeDIST(a:Node,b:Node):
     return round(hypot((a.X-b.X),(a.Y-b.Y),(a.Z-b.Z)),6)
 
-def _nodeAngleVector(b:Node,a:Node):
-
-    Z_new = np.array([0.000001,0,1])
-    X_new = np.array([(a.X-b.X),(a.Y-b.Y),(a.Z-b.Z)])
-    Y_new = np.cross(Z_new, X_new)
-
-    Z_new = np.cross(X_new, Y_new) # Recomputing
-
-    X_new = X_new / (np.linalg.norm(X_new)+0.000001)
-    Y_new = Y_new / (np.linalg.norm(Y_new)+0.000001)
-    Z_new = Z_new / (np.linalg.norm(Z_new)+0.000001)
-
-
-    return [X_new,Y_new,Z_new]
-
-
-def _triangleAREA(a:Node,b:Node,c:Node):
-    v1 = np.array([a.X-b.X,a.Y-b.Y,a.Z-b.Z])
-    v2 = np.array([b.X-c.X,b.Y-c.Y,b.Z-c.Z])
-    mag = np.linalg.norm(np.cross(v1, v2))
-    return float(0.5 * mag) , np.cross(v1, v2)/mag
 
 def _ADD(self):
     """
@@ -332,21 +236,6 @@ class Element:
             self.ANGLE = angle
             self._GROUP = group
 
-            _n1 = nodeByID(i)
-            _n2 = nodeByID(j)
-            self.LENGTH = _nodeDIST(_n1,_n2)
-
-            if bLocalAxis:
-                _tempAngle = _nodeAngleVector(_n1,_n2)
-                _n1.AXIS = np.add(_n1.AXIS,_tempAngle)
-                _n2.AXIS = np.add(_n2.AXIS,_tempAngle)
-
-                _norm1 = np.linalg.norm(_n1.AXIS ,axis=1,keepdims=True)
-                _n1.AXIS = _n1.AXIS /_norm1
-
-                _norm2 = np.linalg.norm(_n2.AXIS ,axis=1,keepdims=True)
-                _n2.AXIS = _n2.AXIS /_norm2
-
             _ADD(self)
 
         @staticmethod
@@ -393,25 +282,6 @@ class Element:
                 
                 return beam_obj
         
-        @staticmethod
-        def PLine(points_loc:list,n_div:int=0,deg:int=1,includePoint:bool=True,mat:int=1,sect:int=1,angle:float=0, group = "" , id: int = 0,bLocalAxis=False):
-
-                beam_nodes =[]
-                beam_obj = []
-                if n_div == 0 :
-                    i_loc = points_loc
-                else:
-                    i_loc = _interpolateAlignment(points_loc,n_div,deg,0,includePoint)
-                for i in i_loc:
-                    Enode=Node(i[0],i[1],i[2])
-                    beam_nodes.append(Enode.ID)
-                
-                for i in range(len(i_loc)-1):
-                    if id == 0 : id_new = 0
-                    else: id_new = id+i
-                    beam_obj.append(Element.Beam(beam_nodes[i],beam_nodes[i+1],mat,sect,angle,group,id_new,bLocalAxis))
-                
-                return beam_obj
 
     class Truss(_common):
         def __init__(self, i: int, j: int, mat: int = 1, sect: int = 1, angle: float = 0, group = "" , id: int = 0):
@@ -446,7 +316,6 @@ class Element:
             self.NODE = [i, j]
             self.ANGLE = angle
             self._GROUP = group
-            self.LENGTH = _nodeDIST(nodeByID(i),nodeByID(j))
             _ADD(self)
 
         @staticmethod
@@ -528,16 +397,6 @@ class Element:
             self.ANGLE = angle
             self.STYPE = stype
             self._GROUP = group
-
-            if len(nodes)==3:
-                self.AREA,self.NORMAL = _triangleAREA(nodeByID(nodes[0]),nodeByID(nodes[1]),nodeByID(nodes[2]))
-            elif len(nodes)==4:
-                a1 , n1 = _triangleAREA(nodeByID(nodes[0]),nodeByID(nodes[1]),nodeByID(nodes[2]))
-                a2 , n2 = _triangleAREA(nodeByID(nodes[2]),nodeByID(nodes[3]),nodeByID(nodes[0]))
-                self.AREA = a1+a2
-                self.NORMAL = (n1+n2)/np.linalg.norm((n1+n2))
-                
-
 
             _ADD(self)
             
@@ -696,182 +555,6 @@ class Element:
             _ADD(self)
 
     
-#-----------------------------------------------Stiffness Scale Factor------------------------------
-
-    class StiffnessScaleFactor:
-    
-        data = []
-        
-        def __init__(self, 
-                    element_id,
-                    area_sf: float = 1.0,
-                    asy_sf: float = 1.0,
-                    asz_sf: float = 1.0,
-                    ixx_sf: float = 1.0,
-                    iyy_sf: float = 1.0,
-                    izz_sf: float = 1.0,
-                    wgt_sf: float = 1.0,
-                    group: str = "",
-                    id: int = None):
-            """
-                element_id: Element ID(s) where scale factor is applied (can be int or list)
-                area_sf: Cross-sectional area scale factor
-                asy_sf: Effective Shear Area scale factor (y-axis)
-                asz_sf: Effective Shear Area scale factor (z-axis)
-                ixx_sf: Torsional Resistance scale factor (x-axis)
-                iyy_sf: Area Moment of Inertia scale factor (y-axis)
-                izz_sf: Area Moment of Inertia scale factor (z-axis)
-                wgt_sf: Weight scale factor
-                group: Group name (default "")
-                id: Scale factor ID (optional, auto-assigned if None)
-            
-            Examples:
-                StiffnessScaleFactor(908, area_sf=0.5, asy_sf=0.6, asz_sf=0.7, 
-                                ixx_sf=0.8, iyy_sf=0.8, izz_sf=0.9, wgt_sf=0.95)
-                
-            """
-            
-            # Check if group exists, create if not
-            if group != "":
-                chk = 0
-                a = [v['NAME'] for v in Group.Boundary.json()["Assign"].values()]
-                if group in a:
-                    chk = 1
-                if chk == 0:
-                    Group.Boundary(group)
-            
-            # Handle element_id as single int or list
-            if isinstance(element_id, (list, tuple)):
-                self.ELEMENT_IDS = list(element_id)
-            else:
-                self.ELEMENT_IDS = [element_id]
-            
-            self.AREA_SF = area_sf
-            self.ASY_SF = asy_sf
-            self.ASZ_SF = asz_sf
-            self.IXX_SF = ixx_sf
-            self.IYY_SF = iyy_sf
-            self.IZZ_SF = izz_sf
-            self.WGT_SF = wgt_sf
-            self.GROUP_NAME = group
-            
-            # Auto-assign ID if not provided
-            if id is None:
-                self.ID = len(Element.StiffnessScaleFactor.data) + 1
-            else:
-                self.ID = id
-            
-            # Add to static list
-            Element.StiffnessScaleFactor.data.append(self)
-        
-        @classmethod
-        def json(cls):
-            """
-            Converts StiffnessScaleFactor data to JSON format
-            """
-            json_data = {"Assign": {}}
-            
-            for scale_factor in cls.data:
-                # Create scale factor item
-                scale_factor_item = {
-                    "ID": scale_factor.ID,
-                    "AREA_SF": scale_factor.AREA_SF,
-                    "ASY_SF": scale_factor.ASY_SF,
-                    "ASZ_SF": scale_factor.ASZ_SF,
-                    "IXX_SF": scale_factor.IXX_SF,
-                    "IYY_SF": scale_factor.IYY_SF,
-                    "IZZ_SF": scale_factor.IZZ_SF,
-                    "WGT_SF": scale_factor.WGT_SF,
-                    "GROUP_NAME": scale_factor.GROUP_NAME
-                }
-                
-                # Assign to each element ID
-                for element_id in scale_factor.ELEMENT_IDS:
-                    if str(element_id) not in json_data["Assign"]:
-                        json_data["Assign"][str(element_id)] = {"ITEMS": []}
-                    
-                    json_data["Assign"][str(element_id)]["ITEMS"].append(scale_factor_item)
-            
-            return json_data
-        
-        @classmethod
-        def create(cls):
-            """
-            Sends all StiffnessScaleFactor data to the API
-            """
-            MidasAPI("PUT", "/db/essf", cls.json())
-        
-        @classmethod
-        def get(cls):
-            """
-            Retrieves StiffnessScaleFactor data from the API
-            """
-            return MidasAPI("GET", "/db/essf")
-        
-        @classmethod
-        def sync(cls):
-            """
-            Updates the StiffnessScaleFactor class with data from the API
-            """
-            cls.data = []
-            response = cls.get()
-            
-            if response != {'message': ''}:
-                processed_ids = set()  # To avoid duplicate processing
-                
-                for element_data in response.get("ESSF", {}).items():
-                    for item in element_data.get("ITEMS", []):
-                        scale_factor_id = item.get("ID", 1)
-                        
-                        # Skip if already processed (for multi-element scale factors)
-                        if scale_factor_id in processed_ids:
-                            continue
-                        
-                        # Find all elements with the same scale factor ID
-                        element_ids = []
-                        for eid, edata in response.get("ESSF", {}).items():
-                            for eitem in edata.get("ITEMS", []):
-                                if eitem.get("ID") == scale_factor_id:
-                                    element_ids.append(int(eid))
-                        
-                        # Create StiffnessScaleFactor object
-                        Element.StiffnessScaleFactor(
-                            element_id=element_ids if len(element_ids) > 1 else element_ids[0],
-                            area_sf=item.get("AREA_SF", 1.0),
-                            asy_sf=item.get("ASY_SF", 1.0),
-                            asz_sf=item.get("ASZ_SF", 1.0),
-                            ixx_sf=item.get("IXX_SF", 1.0),
-                            iyy_sf=item.get("IYY_SF", 1.0),
-                            izz_sf=item.get("IZZ_SF", 1.0),
-                            wgt_sf=item.get("WGT_SF", 1.0),
-                            group=item.get("GROUP_NAME", ""),
-                            id=scale_factor_id
-                        )
-                        
-                        processed_ids.add(scale_factor_id)
-        
-        @classmethod
-        def delete(cls):
-            """
-            Deletes all stiffness scale factors from the database and resets the class.
-            """
-            cls.data = []
-            return MidasAPI("DELETE", "/db/essf")
-
-
-
-
-# ---- GET ELEMENT OBJECT FROM ID ----------
-
-# def elemByID2(elemID:int) -> Element:
-#     ''' Return Element object with the input ID '''
-#     for elem in Element.elements:
-#         if elem.ID == elemID:
-#             return elem
-        
-#     print(f'There is no element with ID {elemID}')
-#     return None
-
 def elemByID(elemID:int) -> Element:
     ''' Return Element object with the input ID '''
     try:

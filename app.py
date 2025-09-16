@@ -1,6 +1,6 @@
 import streamlit as st
 from backend.finalUIfunc import SS_create
-from midas_civil import *
+from backend.midas_civil_lib import *
 
 if "api_key_entered" not in st.session_state:
     st.session_state.api_key_entered = False

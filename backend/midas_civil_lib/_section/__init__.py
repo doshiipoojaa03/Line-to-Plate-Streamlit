@@ -4,7 +4,7 @@ from ._offsetSS import Offset
 from ._unSupp import _SS_UNSUPP,_SS_STD_DB
 from ._compositeSS import _SS_COMP_PSC_I,_SS_COMP_STEEL_I_TYPE1
 
-from midas_civil import MidasAPI
+from backend.midas_civil_lib import MidasAPI
 
 
 class _helperSECTION:
