@@ -3,10 +3,10 @@ from backend.finalUIfunc import SS_create
 from backend.midas_civil_lib import *
 import os
 
-# # Show environment details for debugging
-# st.write("### Environment Details")
-# st.write("PORT:", os.getenv("PORT"))
-# st.write("MAPI_KEY (set):", os.getenv("MAPI_KEY") is not None)
+# Show environment details for debugging
+st.write("### Environment Details")
+st.write("PORT:", os.getenv("PORT"))
+st.write("MAPI_KEY (set):", MAPI_BASEURL.baseURL)
 
 # Set the API key from environment if available
 if "api_key_entered" not in st.session_state:
@@ -15,6 +15,7 @@ if "api_key_entered" not in st.session_state:
 # If environment variable is available, set it directly
 if not st.session_state.api_key_entered and os.getenv("MAPI_KEY"):
     MAPI_KEY(os.getenv("MAPI_KEY"))
+    
     st.session_state.api_key_entered = True
 
 # Function to set API key from user input
