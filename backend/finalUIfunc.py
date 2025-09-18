@@ -1,5 +1,5 @@
 import numpy as np
-from .midas_civil_lib import *
+from midas_civil import *
 import math
 from scipy.interpolate import splev, splprep
 from math import hypot

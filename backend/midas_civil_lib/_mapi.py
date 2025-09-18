@@ -2,9 +2,9 @@
 import requests
 
 class MAPI_BASEURL:
-    baseURL = "https://moa-engineers.midasit.com:443/civil"
+    baseURL = ""
     
-    def __init__(self, baseURL:str = "https://moa-engineers.midasit.com:443/civil"):
+    def __init__(self, baseURL:str):
         ''' Define the Base URL for API connection.
         ```
         MAPI_BASEURL('https://moa-engineers.midasit.com:443/civil')

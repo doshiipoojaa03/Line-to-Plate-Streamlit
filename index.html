@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Line to Plate Convertor </title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="midas-controller"></div>
+    <iframe
+        id="streamlit-iframe"
+        src="https://line-to-plate-streamlit.onrender.com"
+        allowfullscreen
+    ></iframe>
+    <script>
+        const iframeElement = document.getElementById("streamlit-iframe");
+        const queryParams = new URLSearchParams(window.location.search).toString();
+        iframeElement.src = `https://line-to-plate-streamlit.onrender.com/?${queryParams}`;
+    </script>
+</body>
+</html>

@@ -1,12 +1,12 @@
 import streamlit as st
 from backend.finalUIfunc import SS_create
-from backend.midas_civil_lib import *
+from midas_civil import *
 import os
 
 # Show environment details for debugging
 st.write("### Environment Details")
 st.write("PORT:", os.getenv("PORT"))
-st.write("MAPI_KEY (set):", MAPI_BASEURL.baseURL)
+st.write("MAPI_KEY (set):", MAPI_KEY.data)
 
 # Set the API key from environment if available
 if "api_key_entered" not in st.session_state:

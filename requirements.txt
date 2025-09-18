@@ -1,3 +1,4 @@
 streamlit >= 1.49.1
 scipy
 numpy
+midas_civil >= 1.0.8
